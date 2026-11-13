@@ -9,7 +9,6 @@ $edit = ["equipment_id" => "", "equipment_name" => "", "property_number" => "", 
 $form_type = "Laptop";
 $form_model = "";
 
-// ---------- SAVE (add or update) ----------
 if (isset($_POST["save"])) {
     $id = $_POST["equipment_id"];
     $type = $_POST["device_type"];
@@ -17,7 +16,6 @@ if (isset($_POST["save"])) {
     $property = trim($_POST["property_number"]);
     $qty = trim($_POST["available_quantity"]);
 
-    // The name is saved as "Type - Model", for example "Laptop - Dell Latitude 5420"
     $name = $type . " - " . $model;
 
     $edit = ["equipment_id" => $id, "equipment_name" => $name, "property_number" => $property, "available_quantity" => $qty];
@@ -50,7 +48,6 @@ if (isset($_POST["save"])) {
     }
 }
 
-// ---------- DELETE ----------
 if (isset($_GET["delete"])) {
     if (!ctype_digit($_GET["delete"])) {
         $error = "Invalid equipment ID.";
@@ -69,7 +66,6 @@ if (isset($_GET["delete"])) {
     }
 }
 
-// ---------- LOAD ONE ROW INTO THE FORM FOR EDITING ----------
 if (isset($_GET["edit"])) {
     if (!ctype_digit($_GET["edit"])) {
         $error = "Invalid equipment ID.";
@@ -90,10 +86,8 @@ if (isset($_GET["edit"])) {
     }
 }
 
-// ---------- READ ----------
 $all_rows = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id")->fetchAll();
 
-// Optional filter by device type (?type=Laptop)
 $filter = isset($_GET["type"]) ? $_GET["type"] : "";
 $rows = [];
 foreach ($all_rows as $r) {

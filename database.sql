@@ -1,15 +1,3 @@
--- =====================================================================
--- EQUIPMENT BORROWING DATABASE  (PostgreSQL)
--- Run this whole file once in pgAdmin: Query Tool on Enrollment_Activity.
--- It is safe to run again: it only creates what is missing and
--- replaces views, functions and triggers.
--- =====================================================================
-
-
--- =====================================================================
--- PART 1 (Week 4 and 5): FOUR TABLES, KEYS, AND CONSTRAINTS
--- =====================================================================
-
 CREATE TABLE IF NOT EXISTS borrowers (
     borrower_id     SERIAL PRIMARY KEY,
     borrower_number VARCHAR(20)  NOT NULL UNIQUE,
@@ -44,16 +32,9 @@ CREATE TABLE IF NOT EXISTS borrow_items (
     CONSTRAINT uq_borrow_equipment UNIQUE (borrow_id, equipment_id)
 );
 
--- Only PC, Laptop, Tablet, and Phone can be added as equipment.
--- NOT VALID means old rows are not re-checked, but every new or edited row is.
 ALTER TABLE equipment DROP CONSTRAINT IF EXISTS chk_equipment_type;
 ALTER TABLE equipment ADD CONSTRAINT chk_equipment_type
     CHECK (equipment_name ~ '^(PC|Laptop|Tablet|Phone) - .+') NOT VALID;
-
-
--- =====================================================================
--- SAMPLE DATA (equipment that can be borrowed is listed already)
--- =====================================================================
 
 INSERT INTO equipment (equipment_name, property_number, available_quantity) VALUES
     ('Laptop - Dell Latitude 5420',        'PN-LT-1001', 6),
@@ -79,19 +60,6 @@ INSERT INTO borrowers (borrower_number, full_name, borrower_type) VALUES
     ('B-006', 'Paolo Villanueva',   'Student')
 ON CONFLICT (borrower_number) DO NOTHING;
 
--- Optional clean-up: remove old equipment that is not a PC, Laptop, Tablet, or Phone
--- and was never borrowed. Remove the two dashes in front of the lines to use it.
--- DELETE FROM equipment
--- WHERE equipment_name !~ '^(PC|Laptop|Tablet|Phone) - '
---   AND equipment_id NOT IN (SELECT equipment_id FROM borrow_items);
-
-
--- =====================================================================
--- WEEK 10: TRIGGERS (created before the sample transactions on purpose,
--- so the audit table already shows real events)
--- =====================================================================
-
--- Audit table (stores the item, the operation, old and new values, and the time)
 CREATE TABLE IF NOT EXISTS borrow_items_audit (
     audit_id         SERIAL PRIMARY KEY,
     item_id          INTEGER,
@@ -103,7 +71,6 @@ CREATE TABLE IF NOT EXISTS borrow_items_audit (
     event_time       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- 5.2 PL/pgSQL function: can the requested quantity be accommodated?
 CREATE OR REPLACE FUNCTION fn_check_equipment_availability(p_equipment_id INTEGER, p_requested_quantity INTEGER)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -114,7 +81,7 @@ BEGIN
     WHERE equipment_id = p_equipment_id;
 
     IF v_stock IS NULL THEN
-        RETURN FALSE;               -- equipment does not exist
+        RETURN FALSE;
     ELSIF p_requested_quantity <= v_stock THEN
         RETURN TRUE;
     ELSE
@@ -123,7 +90,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 5.1 SQL function: quantity of one equipment item that is out right now
 CREATE OR REPLACE FUNCTION fn_total_borrowed(p_equipment_id INTEGER)
 RETURNS INTEGER AS $$
     SELECT COALESCE(SUM(bi.quantity), 0)::INTEGER
@@ -133,7 +99,6 @@ RETURNS INTEGER AS $$
       AND t.status = 'Borrowed';
 $$ LANGUAGE sql;
 
--- 5.3 BEFORE trigger function: reject a quantity that is more than the stock
 CREATE OR REPLACE FUNCTION fn_validate_borrow_quantity()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -156,7 +121,6 @@ CREATE TRIGGER trg_validate_borrow_quantity
     BEFORE INSERT OR UPDATE ON borrow_items
     FOR EACH ROW EXECUTE PROCEDURE fn_validate_borrow_quantity();
 
--- 5.4 AFTER trigger function: write every INSERT, UPDATE, and DELETE to the audit table
 CREATE OR REPLACE FUNCTION fn_borrow_items_audit()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -182,19 +146,12 @@ CREATE TRIGGER trg_borrow_items_audit
     AFTER INSERT OR UPDATE OR DELETE ON borrow_items
     FOR EACH ROW EXECUTE PROCEDURE fn_borrow_items_audit();
 
-
--- =====================================================================
--- SAMPLE TRANSACTIONS (only added when the table is empty)
--- Gives the reports real data: two borrowers with 2 transactions,
--- one overdue record, and borrowers and equipment with no history.
--- =====================================================================
 DO $$
 DECLARE
     t INTEGER;
 BEGIN
     IF (SELECT COUNT(*) FROM borrow_transactions) = 0 THEN
 
-        -- B-001, returned laptop
         INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
         VALUES ((SELECT borrower_id FROM borrowers WHERE borrower_number = 'B-001'),
                 CURRENT_DATE - 30, CURRENT_DATE - 23, 'Returned')
@@ -202,7 +159,6 @@ BEGIN
         INSERT INTO borrow_items (borrow_id, equipment_id, quantity)
         VALUES (t, (SELECT equipment_id FROM equipment WHERE property_number = 'PN-LT-1001'), 1);
 
-        -- B-001, tablet and phone out now
         INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
         VALUES ((SELECT borrower_id FROM borrowers WHERE borrower_number = 'B-001'),
                 CURRENT_DATE - 3, CURRENT_DATE + 4, 'Borrowed')
@@ -211,7 +167,6 @@ BEGIN
         VALUES (t, (SELECT equipment_id FROM equipment WHERE property_number = 'PN-TB-3001'), 1),
                (t, (SELECT equipment_id FROM equipment WHERE property_number = 'PN-PH-4001'), 1);
 
-        -- B-002, two PCs, late (overdue record)
         INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
         VALUES ((SELECT borrower_id FROM borrowers WHERE borrower_number = 'B-002'),
                 CURRENT_DATE - 10, CURRENT_DATE - 3, 'Borrowed')
@@ -219,7 +174,6 @@ BEGIN
         INSERT INTO borrow_items (borrow_id, equipment_id, quantity)
         VALUES (t, (SELECT equipment_id FROM equipment WHERE property_number = 'PN-PC-2001'), 2);
 
-        -- B-002, returned laptop
         INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
         VALUES ((SELECT borrower_id FROM borrowers WHERE borrower_number = 'B-002'),
                 CURRENT_DATE - 45, CURRENT_DATE - 38, 'Returned')
@@ -227,7 +181,6 @@ BEGIN
         INSERT INTO borrow_items (borrow_id, equipment_id, quantity)
         VALUES (t, (SELECT equipment_id FROM equipment WHERE property_number = 'PN-LT-1002'), 1);
 
-        -- B-003, two laptops out now
         INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
         VALUES ((SELECT borrower_id FROM borrowers WHERE borrower_number = 'B-003'),
                 CURRENT_DATE, CURRENT_DATE + 7, 'Borrowed')
@@ -237,11 +190,6 @@ BEGIN
 
     END IF;
 END $$;
-
-
--- =====================================================================
--- WEEK 8: VIEWS (with ROUND, ABS, NULLIF, and CASE)
--- =====================================================================
 
 DROP VIEW IF EXISTS vw_borrowing_details;
 CREATE VIEW vw_borrowing_details AS

@@ -10,7 +10,6 @@ $tables = [
     "borrow_items" => "borrow_items.php"
 ];
 
-// Add up the available units for each device type
 $stock = ["PC" => 0, "Laptop" => 0, "Tablet" => 0, "Phone" => 0];
 $all_equipment = $pdo->query("SELECT equipment_name, available_quantity FROM equipment")->fetchAll();
 foreach ($all_equipment as $e) {

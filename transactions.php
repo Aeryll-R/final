@@ -14,7 +14,6 @@ $edit = [
     "status" => "Borrowed"
 ];
 
-// ---------- SAVE (add or update) ----------
 if (isset($_POST["save"])) {
     $id = $_POST["borrow_id"];
     $borrower = $_POST["borrower_id"];
@@ -46,7 +45,6 @@ if (isset($_POST["save"])) {
     }
 }
 
-// ---------- DELETE (items first, then the header, as one transaction) ----------
 if (isset($_GET["delete"])) {
     if (!ctype_digit($_GET["delete"])) {
         $error = "Invalid transaction ID.";
@@ -72,7 +70,6 @@ if (isset($_GET["delete"])) {
     }
 }
 
-// ---------- LOAD ONE ROW INTO THE FORM FOR EDITING ----------
 if (isset($_GET["edit"])) {
     if (!ctype_digit($_GET["edit"])) {
         $error = "Invalid transaction ID.";
@@ -88,7 +85,6 @@ if (isset($_GET["edit"])) {
     }
 }
 
-// ---------- READ ----------
 $borrowers = $pdo->query("SELECT borrower_id, borrower_number, full_name FROM borrowers ORDER BY full_name")->fetchAll();
 
 $rows = $pdo->query("

@@ -3,8 +3,6 @@ $title = "Admin reports";
 $lead = "Every report below is a live PostgreSQL query. Add or change records and the results update.";
 include "header.php";
 
-// Runs one query and prints it under a heading. A broken query shows an error
-// under its own heading instead of stopping the whole page.
 function report($pdo, $id, $heading, $note, $sql, $params = []) {
     echo "<section class='report' id='$id'>";
     echo "<h3>" . h($heading) . "</h3>";
@@ -21,7 +19,6 @@ function report($pdo, $id, $heading, $note, $sql, $params = []) {
     echo "</section>";
 }
 
-// Values for the filter form in the filtered borrowing report
 $f_status = isset($_GET["status"]) ? $_GET["status"] : "";
 $f_from = (isset($_GET["from"]) && $_GET["from"] != "") ? $_GET["from"] : "2000-01-01";
 $f_to = (isset($_GET["to"]) && $_GET["to"] != "") ? $_GET["to"] : "2100-12-31";
@@ -48,7 +45,6 @@ $s_late = $pdo->query("SELECT COUNT(*) FROM borrow_transactions WHERE due_date <
   <a href="#automation">Functions and audit log</a>
 </div>
 
-<!-- ===================== INVENTORY AND BORROWERS ===================== -->
 <h2 class="sec" id="inventory-borrowers">Inventory and borrowers</h2>
 
 <?php

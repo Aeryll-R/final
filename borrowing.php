@@ -10,9 +10,8 @@ $form = [
     "borrow_date" => date("Y-m-d"),
     "due_date" => date("Y-m-d", strtotime("+7 days"))
 ];
-$kept_qty = [];   // quantities typed by the user, kept if something goes wrong
+$kept_qty = [];
 
-// ---------- SAVE: header + items inside ONE database transaction ----------
 if (isset($_POST["save"])) {
     $borrower = $_POST["borrower_id"];
     $borrow_date = $_POST["borrow_date"];
@@ -22,7 +21,6 @@ if (isset($_POST["save"])) {
     $form = ["borrower_id" => $borrower, "borrow_date" => $borrow_date, "due_date" => $due_date];
     $kept_qty = $qty;
 
-    // Collect only the devices that have a quantity of 1 or more
     $chosen = [];
     foreach ($qty as $equipment_id => $q) {
         $q = trim($q);
@@ -37,7 +35,6 @@ if (isset($_POST["save"])) {
     }
 
     if ($error != "") {
-        // an invalid quantity was found above
     } elseif ($borrower == "" || $borrow_date == "" || $due_date == "") {
         $error = "Please choose a borrower and fill in both dates.";
     } elseif ($due_date < $borrow_date) {
@@ -46,35 +43,32 @@ if (isset($_POST["save"])) {
         $error = "Please enter a quantity for at least one device.";
     } else {
         try {
-            $pdo->beginTransaction();                                   // BEGIN
+            $pdo->beginTransaction();
 
-            // Step 1: the header
             $stmt = $pdo->prepare("INSERT INTO borrow_transactions (borrower_id, borrow_date, due_date, status)
                                    VALUES (?, ?, ?, 'Borrowed') RETURNING borrow_id");
             $stmt->execute([$borrower, $borrow_date, $due_date]);
             $new_id = $stmt->fetchColumn();
 
-            // Step 2: one row for every chosen device
             $stmt = $pdo->prepare("INSERT INTO borrow_items (borrow_id, equipment_id, quantity) VALUES (?, ?, ?)");
             foreach ($chosen as $equipment_id => $q) {
                 $stmt->execute([$new_id, $equipment_id, $q]);
             }
 
-            $pdo->commit();                                             // COMMIT
+            $pdo->commit();
 
             $message = "Borrowing #$new_id saved. The header and all " . count($chosen) . " device(s) were committed together.";
             $form = ["borrower_id" => "", "borrow_date" => date("Y-m-d"), "due_date" => date("Y-m-d", strtotime("+7 days"))];
             $kept_qty = [];
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) {
-                $pdo->rollBack();                                       // ROLLBACK
+                $pdo->rollBack();
             }
             $error = "Nothing was saved (rolled back). " . friendly_error($e);
         }
     }
 }
 
-// ---------- READ ----------
 $borrowers = $pdo->query("SELECT borrower_id, borrower_number, full_name FROM borrowers ORDER BY full_name")->fetchAll();
 $equipment = $pdo->query("SELECT equipment_id, equipment_name, property_number, available_quantity FROM equipment WHERE available_quantity > 0 ORDER BY equipment_name")->fetchAll();
 

@@ -6,7 +6,6 @@ include "header.php";
 $message = "";
 $error = "";
 
-// Which transaction are we working on?
 $borrow_id = "";
 if (isset($_GET["borrow_id"])) {
     $borrow_id = $_GET["borrow_id"];
@@ -14,7 +13,6 @@ if (isset($_GET["borrow_id"])) {
     $borrow_id = $_POST["borrow_id"];
 }
 
-// ---------- STEP 1: pick a transaction ----------
 $transactions = $pdo->query("
     SELECT t.borrow_id, b.full_name, t.borrow_date, t.status
     FROM borrow_transactions t
@@ -67,17 +65,14 @@ if (!$header) {
     exit;
 }
 
-// ---------- STEP 2: work on the items of this transaction ----------
 $message = "";
 $error = "";
 $edit = ["item_id" => "", "equipment_id" => "", "quantity" => "1"];
 
-// A device was picked from the list below: fill the form with it
 if (isset($_GET["pick"]) && ctype_digit($_GET["pick"])) {
     $edit["equipment_id"] = $_GET["pick"];
 }
 
-// SAVE (add or update)
 if (isset($_POST["save"])) {
     $item_id = $_POST["item_id"];
     $equipment_id = $_POST["equipment_id"];
@@ -102,13 +97,11 @@ if (isset($_POST["save"])) {
             }
             $edit = ["item_id" => "", "equipment_id" => "", "quantity" => "1"];
         } catch (PDOException $e) {
-            // This also shows the trigger message when the quantity is more than the stock
             $error = friendly_error($e);
         }
     }
 }
 
-// DELETE
 if (isset($_GET["delete"])) {
     if (!ctype_digit($_GET["delete"])) {
         $error = "Invalid item ID.";
@@ -127,7 +120,6 @@ if (isset($_GET["delete"])) {
     }
 }
 
-// LOAD ONE ITEM INTO THE FORM FOR EDITING
 if (isset($_GET["edit"])) {
     if (!ctype_digit($_GET["edit"])) {
         $error = "Invalid item ID.";
@@ -143,7 +135,6 @@ if (isset($_GET["edit"])) {
     }
 }
 
-// READ
 $equipment = $pdo->query("SELECT equipment_id, equipment_name, property_number, available_quantity FROM equipment ORDER BY equipment_name")->fetchAll();
 
 $stmt = $pdo->prepare("

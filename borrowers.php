@@ -8,14 +8,12 @@ $error = "";
 $types = ["Student", "Faculty", "Staff"];
 $edit = ["borrower_id" => "", "borrower_number" => "", "full_name" => "", "borrower_type" => "Student"];
 
-// ---------- SAVE (add or update) ----------
 if (isset($_POST["save"])) {
     $id = $_POST["borrower_id"];
     $number = trim($_POST["borrower_number"]);
     $name = trim($_POST["full_name"]);
     $type = $_POST["borrower_type"];
 
-    // keep what the user typed in case there is an error
     $edit = ["borrower_id" => $id, "borrower_number" => $number, "full_name" => $name, "borrower_type" => $type];
 
     if ($number == "" || $name == "") {
@@ -38,7 +36,6 @@ if (isset($_POST["save"])) {
     }
 }
 
-// ---------- DELETE ----------
 if (isset($_GET["delete"])) {
     if (!ctype_digit($_GET["delete"])) {
         $error = "Invalid borrower ID.";
@@ -57,7 +54,6 @@ if (isset($_GET["delete"])) {
     }
 }
 
-// ---------- LOAD ONE ROW INTO THE FORM FOR EDITING ----------
 if (isset($_GET["edit"])) {
     if (!ctype_digit($_GET["edit"])) {
         $error = "Invalid borrower ID.";
@@ -73,7 +69,6 @@ if (isset($_GET["edit"])) {
     }
 }
 
-// ---------- READ ----------
 $rows = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id")->fetchAll();
 
 show_messages($message, $error);

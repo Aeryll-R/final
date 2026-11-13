@@ -3,7 +3,6 @@ require_once "db.php";
 
 $current = basename($_SERVER["PHP_SELF"]);
 
-// The only kinds of equipment this system lends out
 $device_types = ["PC", "Laptop", "Tablet", "Phone"];
 
 function nav_link($file, $label) {
@@ -12,7 +11,6 @@ function nav_link($file, $label) {
     echo "<a class='$class' href='$file'>$label</a>";
 }
 
-// Equipment names are saved as "Type - Model", for example "Laptop - Dell Latitude 5420"
 function device_type($name) {
     global $device_types;
     $first = explode(" - ", $name, 2)[0];
@@ -24,13 +22,11 @@ function device_model($name) {
     return isset($parts[1]) ? $parts[1] : $name;
 }
 
-// Small colored label for the device type
 function type_chip($name) {
     $type = device_type($name);
     return "<span class='chip chip-" . strtolower($type) . "'>" . h($type) . "</span>";
 }
 
-// Colored pill for a status such as Borrowed, Returned, Low stock
 function status_badge($text) {
     $class = str_replace(" ", "-", strtolower($text));
     return "<span class='badge badge-" . h($class) . "'>" . h($text) . "</span>";
