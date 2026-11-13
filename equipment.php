@@ -86,7 +86,7 @@ if (isset($_GET["edit"])) {
     }
 }
 
-$all_rows = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id")->fetchAll();
+$all_rows = $pdo->query("SELECT e.*, fn_total_borrowed(e.equipment_id) AS borrowed FROM equipment e ORDER BY e.equipment_id")->fetchAll();
 
 $filter = isset($_GET["type"]) ? $_GET["type"] : "";
 $rows = [];
@@ -137,7 +137,7 @@ show_messages($message, $error);
 
 <div class="table-wrap">
 <table>
-  <tr><th>ID</th><th>Type</th><th>Brand and model</th><th>Property number</th><th>Available</th><th>Status</th><th>Actions</th></tr>
+  <tr><th>ID</th><th>Type</th><th>Brand and model</th><th>Property number</th><th>Available</th><th>Borrowed</th><th>Status</th><th>Actions</th></tr>
   <?php foreach ($rows as $r) { ?>
   <tr>
     <td class="mono"><?= h($r["equipment_id"]) ?></td>
@@ -145,6 +145,7 @@ show_messages($message, $error);
     <td><?= h(device_model($r["equipment_name"])) ?></td>
     <td class="mono"><?= h($r["property_number"]) ?></td>
     <td class="mono"><?= h($r["available_quantity"]) ?></td>
+    <td class="mono"><?= h($r["borrowed"]) ?></td>
     <td><?= status_badge(stock_label($r["available_quantity"])) ?></td>
     <td>
       <a href="equipment.php?edit=<?= h($r["equipment_id"]) ?>">Edit</a> |

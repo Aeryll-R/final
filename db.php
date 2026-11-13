@@ -1,5 +1,5 @@
 <?php
-$host = "localhost";
+$host = "192.168.1.161";
 $port = "5432";
 $dbname = "Enrollment_Activity";
 $user = "postgres";

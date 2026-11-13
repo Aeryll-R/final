@@ -156,17 +156,36 @@ report($pdo, "complete", "Complete Borrowing Report",
      ORDER BY t.borrow_date DESC, t.borrow_id DESC");
 
 report($pdo, "eqsummary", "Equipment Borrowing Summary",
-    "How often each device was borrowed, with the total, average, smallest, and largest quantity.",
-    "SELECT e.equipment_name,
-            COUNT(bi.item_id) AS times_borrowed,
-            SUM(bi.quantity) AS total_quantity,
-            ROUND(AVG(bi.quantity), 2) AS avg_quantity,
-            MIN(bi.quantity) AS min_quantity,
-            MAX(bi.quantity) AS max_quantity
-     FROM equipment e
-     INNER JOIN borrow_items bi ON e.equipment_id = bi.equipment_id
-     GROUP BY e.equipment_name
-     ORDER BY total_quantity DESC");
+    "Stock and borrowing history for every device. Days borrowed is the loan period of a borrowing "
+    . "(due date minus borrow date). Avg. days borrowed is the midpoint of the min. and max. days borrowed. "
+    . "Devices never borrowed show 0 times and \"-\" for days.",
+    "WITH loans AS (
+         SELECT DISTINCT bi.equipment_id,
+                t.borrow_id,
+                t.due_date - t.borrow_date AS days_borrowed
+         FROM borrow_items bi
+         JOIN borrow_transactions t ON t.borrow_id = bi.borrow_id
+     ),
+     usage AS (
+         SELECT e.equipment_name,
+                e.property_number,
+                e.available_quantity AS stock,
+                COUNT(l.borrow_id) AS times_borrowed,
+                MIN(l.days_borrowed) AS min_days,
+                MAX(l.days_borrowed) AS max_days
+         FROM equipment e
+         LEFT JOIN loans l ON l.equipment_id = e.equipment_id
+         GROUP BY e.equipment_id, e.equipment_name, e.property_number, e.available_quantity
+     )
+     SELECT equipment_name AS \"Equipment\",
+            property_number AS \"Property no.\",
+            stock AS \"Stock\",
+            times_borrowed AS \"Times borrowed\",
+            ROUND((min_days + max_days) / 2.0, 1) AS \"Avg. days borrowed\",
+            min_days AS \"Min. days borrowed\",
+            max_days AS \"Max. days borrowed\"
+     FROM usage
+     ORDER BY times_borrowed DESC, equipment_name");
 
 report($pdo, "noborrowers", "Borrowers Without Transactions",
     "Registered borrowers who have never borrowed anything.",
@@ -220,7 +239,7 @@ report($pdo, "monthly", "Monthly Borrowing Report",
      ORDER BY DATE_TRUNC('month', borrow_date)");
 
 report($pdo, "periods", "Borrowing periods",
-    "Borrow year and month for each transaction, and how many days the loan allows.",
+    "Borrow year and month for each transaction, and how many days the borrowed allows.",
     "SELECT borrow_id,
             EXTRACT(YEAR FROM borrow_date) AS borrow_year,
             EXTRACT(MONTH FROM borrow_date) AS borrow_month,
@@ -254,7 +273,7 @@ report($pdo, "vw2", "Equipment usage",
 
 <?php
 report($pdo, "fn1", "Devices currently borrowed",
-    "Units of each device that are out on loan right now. Source: function fn_total_borrowed.",
+    "Units of each device that are out on borrowed right now. Source: function fn_total_borrowed.",
     "SELECT equipment_id, equipment_name, fn_total_borrowed(equipment_id) AS total_borrowed_now
      FROM equipment
      ORDER BY equipment_id");
@@ -268,6 +287,22 @@ report($pdo, "fn2", "Availability check",
      FROM equipment
      ORDER BY equipment_id");
 
+report($pdo, "audit", "Borrowed items audit log",
+    "Every add, edit, and delete on borrowed items, written automatically by the AFTER trigger trg_borrow_items_audit using TG_OP, OLD, and NEW.",
+    "SELECT a.audit_id AS \"Audit ID\",
+            a.operation AS \"Operation\",
+            a.borrow_id AS \"Transaction\",
+            a.item_id AS \"Item ID\",
+            eo.equipment_name AS \"Old equipment\",
+            en.equipment_name AS \"New equipment\",
+            a.old_quantity AS \"Old qty\",
+            a.new_quantity AS \"New qty\",
+            a.changed_by AS \"Changed by\",
+            TO_CHAR(a.changed_at, 'Mon DD, YYYY HH24:MI') AS \"Changed at\"
+     FROM borrow_items_audit a
+     LEFT JOIN equipment eo ON eo.equipment_id = a.old_equipment_id
+     LEFT JOIN equipment en ON en.equipment_id = a.new_equipment_id
+     ORDER BY a.audit_id DESC");
 ?>
 
 <?php include "footer.php"; ?>

@@ -144,10 +144,19 @@ WEEK 10 (20 points)
 5.1 SQL function ......... fn_total_borrowed (admin.php, demo block 10)
 5.2 PL/pgSQL function .... fn_check_equipment_availability, tried with 1, 5,
                            and 10 in admin.php and more in demo block 11
-5.3 BEFORE trigger ....... trg_validate_borrow_quantity (try an oversized
-                           quantity on Borrowed items; demo blocks 13, 14b)
+5.3 BEFORE trigger ....... trg_validate_borrow_quantity on borrow_items:
+                           blocks a quantity larger than the units on the
+                           shelf, and more than 3 units out per borrower
 5.4 AFTER audit trigger .. trg_borrow_items_audit with NEW, OLD, TG_OP;
                            table borrow_items_audit (admin.php, last report)
+    AFTER stock triggers . trg_borrow_items_stock: borrowing lowers
+                           equipment.available_quantity, editing adjusts it,
+                           deleting puts the units back.
+                           trg_transaction_status_stock: setting a transaction
+                           to Returned puts its units back; reopening it takes
+                           them out again (with the same checks).
+                           Borrowed and Overdue both count as "out".
 5.5 Integration .......... add, edit, delete items on the website, then open
-                           Admin reports: audit rows appear automatically
+                           Equipment (Available / Borrowed change) and Admin
+                           reports (audit rows appear automatically)
 Live trigger tests ....... demo_tests.sql blocks 12 to 16

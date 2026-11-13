@@ -65,6 +65,10 @@ if (!$header) {
     exit;
 }
 
+// Stock and the 3-item borrower limit are enforced in PostgreSQL by the
+// trigger trg_validate_borrow_quantity; its message is shown via friendly_error().
+// trg_borrow_items_stock then moves the units off / back onto the shelf.
+
 $message = "";
 $error = "";
 $edit = ["item_id" => "", "equipment_id" => "", "quantity" => "1"];
@@ -210,7 +214,7 @@ show_messages($message, $error);
 <h3>Devices in this transaction</h3>
 <div class="table-wrap">
 <table>
-  <tr><th>Item ID</th><th>Type</th><th>Brand and model</th><th>Property number</th><th>Quantity</th><th>Stock</th><th>Actions</th></tr>
+  <tr><th>Item ID</th><th>Type</th><th>Brand and model</th><th>Property number</th><th>Quantity</th><th>Left on shelf</th><th>Actions</th></tr>
   <?php foreach ($items as $i) { ?>
   <tr>
     <td class="mono"><?= h($i["item_id"]) ?></td>
